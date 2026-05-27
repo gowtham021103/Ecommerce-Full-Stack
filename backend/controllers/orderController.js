@@ -30,10 +30,16 @@ exports.createOrder = async (req,res,next)=>{
 
     // Updating Product Stock
     cartItems.forEach(async(item)=>{
-        const product = await productModel.findById(item.product._id);
-        if (product) {
-            product.stock = product.stock - item.qty;
-            await product.save();
+        try {
+            if (item.product && item.product._id) {
+                const product = await productModel.findById(item.product._id);
+                if (product) {
+                    product.stock = String(Number(product.stock) - Number(item.qty));
+                    await product.save();
+                }
+            }
+        } catch (err) {
+            console.error("Error updating stock for product ID:", item?.product?._id, err.message);
         }
     })
     
@@ -60,6 +66,23 @@ exports.createRazorpayOrder = async (req, res) => {
         res.status(200).json({
             success: true,
             order
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Get all orders - /api/v1/orders
+exports.getOrders = async (req, res, next) => {
+    try {
+        const orders = await orderModel.find().sort({ createdAt: -1 });
+        res.status(200).json({
+            success: true,
+            count: orders.length,
+            orders
         });
     } catch (error) {
         res.status(500).json({
